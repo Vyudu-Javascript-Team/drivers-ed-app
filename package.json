@@ -8,12 +8,16 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate && payload generate:types"
   },
   "dependencies": {
     "@auth/core": "^0.18.0",
     "@auth/prisma-adapter": "^1.0.0",
     "@hookform/resolvers": "^3.3.2",
+    "@payloadcms/bundler-webpack": "^1.0.5",
+    "@payloadcms/db-mongodb": "^1.0.8",
+    "@payloadcms/plugin-cloud-storage": "^1.0.15",
+    "@payloadcms/richtext-slate": "^1.0.6",
     "@prisma/client": "^5.6.0",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-dialog": "^1.0.5",
@@ -32,6 +36,7 @@
     "next": "14.0.3",
     "next-auth": "^4.24.5",
     "next-themes": "^0.2.1",
+    "payload": "^2.0.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.48.2",

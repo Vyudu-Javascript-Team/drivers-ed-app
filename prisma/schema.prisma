@@ -16,17 +16,24 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  xp            Int       @default(0)
-  level         Int       @default(1)
+  xp            Int       @default(0) @db.Integer
+  level         Int       @default(1) @db.Integer
   lastLogin     DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  deleted       Boolean   @default(false)
 
   accounts      Account[]
   sessions      Session[]
   progress      StoryProgress[]
   testResults   TestResult[]
   achievements  Achievement[]
+
+  @@index([email])
+  @@index([xp])
+  @@index([level])
+  @@check(xp >= 0)
+  @@check(level >= 1)
 }
 
 model Account {
