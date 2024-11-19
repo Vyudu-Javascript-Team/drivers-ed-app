@@ -1,59 +1,74 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { prisma } from '@/lib/prisma';
+import { authOptions } from '@/lib/auth';
+import { z } from 'zod';
 
-export async function GET(req: Request) {
-  const session = await getServerSession(authOptions)
+const progressSchema = z.object({
+  xp: z.number().min(0),
+  level: z.number().min(1),
+});
 
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
+export async function GET() {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        xp: true,
-        level: true,
-        progress: {
-          include: {
-            story: true,
-          },
-        },
-        testResults: {
-          include: {
-            test: true,
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-          take: 5,
-        },
-        achievements: {
-          orderBy: {
-            unlockedAt: 'desc',
-          },
-        },
-      },
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Calculate next level XP requirement
-    const nextLevelXP = user.level * 1000
+    const progress = await prisma.userProgress.findUnique({
+      where: {
+        userEmail: session.user.email,
+      },
+      include: {
+        achievements: true,
+      },
+    });
 
-    return NextResponse.json({
-      ...user,
-      nextLevelXP,
-    })
+    if (!progress) {
+      return new NextResponse('Progress not found', { status: 404 });
+    }
+
+    return NextResponse.json(progress);
   } catch (error) {
-    console.error('Failed to fetch user progress:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch user progress' },
-      { status: 500 }
-    )
+    console.error('Error fetching progress:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const json = await request.json();
+    const body = progressSchema.parse(json);
+
+    const progress = await prisma.userProgress.upsert({
+      where: {
+        userEmail: session.user.email,
+      },
+      update: {
+        xp: body.xp,
+        level: body.level,
+        updatedAt: new Date(),
+      },
+      create: {
+        userEmail: session.user.email,
+        xp: body.xp,
+        level: body.level,
+      },
+    });
+
+    return NextResponse.json(progress);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return new NextResponse('Invalid request data', { status: 400 });
+    }
+
+    console.error('Error updating progress:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
