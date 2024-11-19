@@ -1,0 +1,47 @@
+image: node:18
+
+variables:
+  NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+
+cache:
+  paths:
+    - node_modules/
+    - .next/cache/
+
+stages:
+  - setup
+  - test
+  - build
+  - deploy
+
+install:
+  stage: setup
+  script:
+    - npm ci
+  artifacts:
+    paths:
+      - node_modules/
+
+lint:
+  stage: test
+  script:
+    - npm run lint
+
+build:
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+
+deploy:
+  stage: deploy
+  script:
+    - npm i -g vercel
+    - vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+    - vercel build --prod --token=$VERCEL_TOKEN
+    - vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN
+  only:
+    - main
