@@ -24,6 +24,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
+import { useToast } from "@/components/ui/use-toast"
+import { Loader2 } from "lucide-react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { createUser, getUser, updateUser, uploadAvatar } from "@/lib/api/users"
+import { useRouter } from "next/navigation"
+import { User } from "@/types/user"
 
 const userFormSchema = z.object({
   name: z.string().min(1, { message: "Name is required" }),
@@ -40,40 +56,128 @@ const userFormSchema = z.object({
   twoFactorAuth: z.boolean().default(false),
 })
 
-export function UserForm({ userId }: { userId?: string }) {
-  const [avatar, setAvatar] = useState("/avatars/01.png")
+type UserFormProps = {
+  userId?: string
+  initialData?: Partial<User>
+}
+
+export function UserForm({ userId, initialData }: UserFormProps) {
+  const [isLoading, setIsLoading] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
+  const [avatar, setAvatar] = useState(initialData?.avatarUrl || "/avatars/01.png")
+  const { toast } = useToast()
+  const router = useRouter()
 
   const form = useForm<z.infer<typeof userFormSchema>>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
-      name: "John Doe",
-      email: "john.doe@example.com",
-      role: "student",
-      status: "active",
-      phone: "+1 234 567 890",
-      bio: "Student learning to drive",
-      notifications: true,
-      twoFactorAuth: false,
+      name: initialData?.name || "",
+      email: initialData?.email || "",
+      role: initialData?.role || "student",
+      status: initialData?.status || "active",
+      phone: initialData?.phone || "",
+      bio: initialData?.bio || "",
+      notifications: initialData?.notifications ?? true,
+      twoFactorAuth: initialData?.twoFactorAuth ?? false,
     },
   })
 
-  function onSubmit(values: z.infer<typeof userFormSchema>) {
-    console.log(values)
+  async function onSubmit(values: z.infer<typeof userFormSchema>) {
+    try {
+      setIsLoading(true)
+      if (userId) {
+        await updateUser(userId, values)
+        toast({
+          title: "Success",
+          description: "User updated successfully",
+        })
+      } else {
+        await createUser(values)
+        toast({
+          title: "Success",
+          description: "User created successfully",
+        })
+      }
+      router.push("/admin/users")
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file && userId) {
+      try {
+        const avatarUrl = await uploadAvatar(userId, file)
+        setAvatar(avatarUrl)
+        toast({
+          title: "Success",
+          description: "Avatar updated successfully",
+        })
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to upload avatar",
+          variant: "destructive",
+        })
+      }
+    }
+  }
+
+  const handleCancel = () => {
+    if (form.formState.isDirty) {
+      setShowCancelDialog(true)
+    } else {
+      router.push("/admin/users")
+    }
   }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
+          <CardTitle>{userId ? "Edit User" : "Create User"}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="mb-6 flex items-center space-x-4">
             <Avatar className="h-24 w-24">
               <AvatarImage src={avatar} />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarFallback>
+                {form.watch("name")
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase() || "U"}
+              </AvatarFallback>
             </Avatar>
-            <Button variant="outline">Change Photo</Button>
+            <div>
+              <Input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="avatar-upload"
+                onChange={handleAvatarChange}
+                disabled={!userId}
+              />
+              <Button
+                variant="outline"
+                onClick={() => document.getElementById("avatar-upload")?.click()}
+                disabled={!userId}
+              >
+                Change Photo
+              </Button>
+              {!userId && (
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Avatar can be uploaded after creating the user
+                </p>
+              )}
+            </div>
           </div>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -230,8 +334,31 @@ export function UserForm({ userId }: { userId?: string }) {
                 )}
               />
               <div className="flex justify-end space-x-4">
-                <Button variant="outline">Cancel</Button>
-                <Button type="submit">Save Changes</Button>
+                <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button type="button" variant="outline" onClick={handleCancel}>
+                      Cancel
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You have unsaved changes. Are you sure you want to discard them?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Continue editing</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => router.push("/admin/users")}>
+                        Discard changes
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {userId ? "Save changes" : "Create user"}
+                </Button>
               </div>
             </form>
           </Form>
