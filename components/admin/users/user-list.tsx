@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/pagination"
 import { User } from "@/types/user"
 import { format } from "date-fns"
+import { toast } from "sonner"
 
 interface UserListProps {
   users: User[]
@@ -160,6 +161,63 @@ export function UserList({
     )
   }
 
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsLoading(true)
+    const formData = new FormData()
+    formData.append("file", file)
+
+    try {
+      const response = await fetch("/api/users/import", {
+        method: "POST",
+        body: formData,
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.message || "Import failed")
+
+      toast.success(`Import completed: ${result.successful} successful, ${result.failed} failed`)
+      if (result.errors.length > 0) {
+        console.error("Import errors:", result.errors)
+      }
+      router.refresh()
+    } catch (error) {
+      toast.error("Failed to import users")
+      console.error("Import error:", error)
+    } finally {
+      setIsLoading(false)
+      // Reset the file input
+      event.target.value = ""
+    }
+  }
+
+  const handleExport = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch("/api/users/export")
+      
+      if (!response.ok) throw new Error("Export failed")
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `users-${new Date().toISOString()}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      toast.error("Failed to export users")
+      console.error("Export error:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {selectedUsers.length > 0 && (
@@ -216,6 +274,30 @@ export function UserList({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={isLoading}
+          >
+            Export Users
+          </Button>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImport}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              disabled={isLoading}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+            >
+              Import Users
+            </Button>
+          </div>
         </div>
       )}
 
