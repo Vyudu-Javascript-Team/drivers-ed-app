@@ -9,6 +9,18 @@ datasource db {
   relationMode = "prisma"
 }
 
+enum UserRole {
+  STUDENT
+  INSTRUCTOR
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -16,6 +28,12 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
+  role          UserRole  @default(STUDENT)
+  status        UserStatus @default(ACTIVE)
+  phone         String?
+  bio           String?   @db.Text
+  notifications Boolean   @default(true)
+  twoFactorAuth Boolean   @default(false)
   xp            Int       @default(0) @db.Integer
   level         Int       @default(1) @db.Integer
   lastLogin     DateTime?
@@ -31,6 +49,8 @@ model User {
   subscription  Subscription?
 
   @@index([email])
+  @@index([role])
+  @@index([status])
   @@index([xp])
   @@index([level])
 }
