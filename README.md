@@ -1,213 +1,144 @@
-# Driver's Ed Stories
+# Driver's Ed Stories Application
 
-A modern, gamified approach to learning driver's education through engaging stories. Built with Next.js 14, Payload CMS, and a dual database architecture (PostgreSQL + MongoDB).
+A modern, interactive platform for driver's education featuring stories, quizzes, and adaptive learning.
 
-## 🚀 Tech Stack
+## 🚀 Quick Start
 
-- **Frontend**: Next.js 14, React 18, TailwindCSS
-- **CMS**: Payload CMS 2.0
-- **Primary Database**: PostgreSQL (User data, progress)
-- **CMS Database**: MongoDB (Content management)
-- **Caching**: Upstash Redis
+1. Clone the repository
+2. Install dependencies:
+```bash
+npm install --legacy-peer-deps
+```
+
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+4. Configure your environment variables in `.env`:
+
+Required configurations:
+- `DATABASE_URL`: PostgreSQL connection string
+- `MONGODB_URI`: MongoDB connection string
+- `NEXTAUTH_SECRET`: JWT secret for authentication
+- `PAYLOAD_SECRET`: Secret key for Payload CMS (min 32 characters)
+- `STRIPE_SECRET_KEY`: Stripe API secret key
+- `STRIPE_WEBHOOK_SECRET`: Stripe webhook secret
+- `S3_*`: AWS S3 credentials for media storage
+- `UPSTASH_REDIS_*`: Upstash Redis credentials for caching
+
+5. Initialize the database:
+```bash
+npx prisma migrate deploy
+npx prisma generate
+```
+
+6. Start the development server:
+```bash
+npm run dev
+```
+
+## 🏗 Architecture
+
+- **Frontend**: Next.js 14 with App Router
+- **Admin Panel**: Payload CMS
+- **Database**: PostgreSQL (main data) + MongoDB (CMS)
 - **Authentication**: NextAuth.js
-- **Payment Processing**: Stripe
 - **File Storage**: AWS S3
-- **Deployment**: Vercel
+- **Caching**: Upstash Redis
+- **Payments**: Stripe
 
-## 🛠 Prerequisites
+## 🔧 Third-Party Service Setup
 
-Before you begin, ensure you have:
+### 1. Stripe Integration
+1. Create a Stripe account at https://stripe.com
+2. Get your API keys from the Stripe Dashboard
+3. Set up webhook endpoints:
+   - Test webhook: `http://localhost:3000/api/webhooks/stripe`
+   - Production webhook: `https://yourdomain.com/api/webhooks/stripe`
+4. Configure webhook events:
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
 
-- Node.js 18+ installed
-- PostgreSQL database
-- MongoDB database
-- Redis instance (Upstash)
-- AWS S3 bucket
-- Stripe account
-- Google OAuth credentials (for authentication)
+### 2. AWS S3 Setup
+1. Create an AWS account
+2. Create an S3 bucket
+3. Configure CORS policy for your bucket:
+```json
+[
+  {
+    "AllowedHeaders": ["*"],
+    "AllowedMethods": ["GET", "PUT", "POST", "DELETE"],
+    "AllowedOrigins": ["http://localhost:3000", "https://yourdomain.com"],
+    "ExposeHeaders": []
+  }
+]
+```
+4. Create IAM user with S3 access
+5. Add credentials to .env file
 
-## 🔧 Local Development Setup
+### 3. Upstash Redis Setup
+1. Create account at https://upstash.com
+2. Create a Redis database
+3. Copy REST URL and token to .env file
 
-1. **Clone the repository**
-   ```bash
-   git clone https://gitlab.com/your-username/drivers-ed-stories.git
-   cd drivers-ed-stories
-   ```
+## 📁 Project Structure
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+```
+drivers-ed-app/
+├── app/                    # Next.js app router pages
+├── components/            # React components
+├── lib/                   # Utility functions and configurations
+├── prisma/               # Database schema and migrations
+├── collections/          # Payload CMS collections
+├── public/               # Static assets
+└── styles/               # Global styles
+```
 
-3. **Environment Variables**
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Required environment variables:
-   ```env
-   # Database URLs
-   DATABASE_URL="postgresql://user:password@localhost:5432/driversed"
-   MONGODB_URI="mongodb://localhost:27017/driversed"
+## 🔐 Security Considerations
 
-   # Authentication
-   NEXTAUTH_SECRET="your-secret-key"
-   NEXTAUTH_URL="http://localhost:3000"
-   GOOGLE_CLIENT_ID="your-google-client-id"
-   GOOGLE_CLIENT_SECRET="your-google-client-secret"
+1. **API Keys**: Never commit API keys to the repository
+2. **Environment Variables**: Use different values for development and production
+3. **File Upload**: Implement file type validation and size limits
+4. **Rate Limiting**: Implement rate limiting on API routes
+5. **Authentication**: Secure all admin routes and API endpoints
 
-   # Payload CMS
-   PAYLOAD_SECRET="your-payload-secret"
-   NEXT_PUBLIC_SERVER_URL="http://localhost:3000"
+## 🚀 Deployment Checklist
 
-   # Redis
-   UPSTASH_REDIS_REST_URL="your-redis-url"
-   UPSTASH_REDIS_REST_TOKEN="your-redis-token"
-
-   # Stripe
-   STRIPE_SECRET_KEY="your-stripe-secret"
-   STRIPE_WEBHOOK_SECRET="your-webhook-secret"
-   STRIPE_PRICE_ID="your-price-id"
-   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="your-publishable-key"
-
-   # AWS S3
-   S3_BUCKET="your-bucket-name"
-   AWS_ACCESS_KEY_ID="your-access-key"
-   AWS_SECRET_ACCESS_KEY="your-secret-key"
-   AWS_REGION="your-region"
-   ```
-
-4. **Database Setup**
-   ```bash
-   # Generate Prisma client
-   npx prisma generate
-
-   # Push schema to database
-   npx prisma db push
-
-   # Generate Payload types
-   npm run payload generate:types
-   ```
-
-5. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-## 📦 Production Deployment
-
-### Vercel Deployment (Recommended)
-
-1. **Fork the repository to your GitLab account**
-
-2. **Create a new project in Vercel**
-   - Connect your GitLab repository
-   - Add all environment variables from `.env.local`
-   - Enable automatic deployments
-
-3. **Database Setup**
-   - Set up a managed PostgreSQL database (e.g., Supabase, Railway)
-   - Set up a MongoDB instance (e.g., MongoDB Atlas)
-   - Update the database connection strings in Vercel environment variables
-
-4. **Redis Setup**
-   - Create a Redis instance on Upstash
-   - Add Redis credentials to Vercel environment variables
-
-5. **S3 Setup**
-   - Create an S3 bucket for media storage
-   - Configure CORS for your domain
-   - Add AWS credentials to Vercel environment variables
-
-6. **Stripe Setup**
-   - Set up Stripe webhook endpoint
-   - Add Stripe credentials to Vercel environment variables
-
-### Manual Deployment
-
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
-
-2. **Start production server**
-   ```bash
-   npm start
-   ```
-
-## 🔄 CI/CD Pipeline
-
-The repository includes a GitLab CI/CD configuration that:
-- Runs tests
-- Checks code quality
-- Builds the application
-- Deploys to Vercel
+1. Configure production environment variables
+2. Run database migrations
+3. Set up SSL certificate
+4. Configure domain and DNS settings
+5. Set up monitoring and error tracking
+6. Configure backup strategy
+7. Test payment system in production mode
 
 ## 🧪 Testing
 
 ```bash
-# Run all tests
-npm test
+# Run unit tests
+npm run test
 
-# Run tests in watch mode
-npm test -- --watch
+# Run e2e tests
+npm run test:e2e
 ```
 
-## 📝 Content Management
+## 📚 Additional Resources
 
-1. **Access the CMS**
-   - Visit `/admin` on your deployed site
-   - Log in with admin credentials
-
-2. **Content Types**
-   - Stories: Interactive learning content
-   - Questions: Test questions and answers
-   - States: State-specific content
-   - Media: Images and videos
-
-## 🔐 Security Considerations
-
-- All API routes are rate-limited
-- Authentication uses secure sessions
-- File uploads are validated and sanitized
-- Database queries are protected against injection
-- Security headers are implemented
-- CORS is properly configured
-
-## 🚨 Troubleshooting
-
-Common issues and solutions:
-
-1. **Database Connection Issues**
-   - Check connection strings
-   - Verify network access
-   - Check firewall settings
-
-2. **Build Errors**
-   - Clear `.next` directory
-   - Delete `node_modules` and reinstall
-   - Check Node.js version
-
-3. **CMS Issues**
-   - Verify MongoDB connection
-   - Check Payload secret
-   - Ensure proper file permissions
+- [Next.js Documentation](https://nextjs.org/docs)
+- [Payload CMS Documentation](https://payloadcms.com/docs)
+- [Stripe Documentation](https://stripe.com/docs)
+- [AWS S3 Documentation](https://docs.aws.amazon.com/s3)
+- [Upstash Documentation](https://docs.upstash.com)
 
 ## 🤝 Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+1. Create a feature branch
+2. Make your changes
+3. Run tests
+4. Submit a pull request
 
-## 📄 License
+## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 💬 Support
-
-For support:
-- Create an issue in the repository
-- Contact the development team
-- Check the documentation in `/docs`
-
----
-
-Built with ❤️ by the Driver's Ed Stories team
+This project is proprietary and confidential.
