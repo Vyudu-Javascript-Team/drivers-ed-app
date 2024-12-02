@@ -1,6 +1,6 @@
-import { CollectionConfig } from 'payload/types';
+const { CollectionConfig } = require('payload/types');
 
-export const Users: CollectionConfig = {
+module.exports = {
   slug: 'users',
   auth: {
     useAPIKey: true,

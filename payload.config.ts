@@ -1,16 +1,22 @@
-import { buildConfig } from 'payload/config';
-import path from 'path';
-import { Story } from './collections/Story';
-import { Test } from './collections/Test';
-import { Media } from './collections/Media';
-import { Users } from './collections/Users';
+const { buildConfig } = require('payload/config');
+const path = require('path');
+const Story = require('./collections/Story');
+const Test = require('./collections/Test');
+const Media = require('./collections/Media');
+const Users = require('./collections/Users');
+const lexicalEditor = require('@payloadcms/richtext-lexical').default;
 
-export default buildConfig({
+module.exports = buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000',
   admin: {
     user: Users.slug,
-    bundler: 'webpack',
+    bundler: {
+      features: {
+        ssr: false,
+      },
+    },
   },
+  editor: lexicalEditor({}),
   collections: [
     Users,
     Story,

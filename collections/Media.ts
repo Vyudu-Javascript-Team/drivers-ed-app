@@ -1,6 +1,6 @@
-import { CollectionConfig } from 'payload/types';
+const { CollectionConfig } = require('payload/types');
 
-export const Media: CollectionConfig = {
+module.exports = {
   slug: 'media',
   upload: {
     staticURL: '/media',

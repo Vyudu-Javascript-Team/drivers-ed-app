@@ -1,6 +1,6 @@
-import { CollectionConfig } from 'payload/types';
+const { CollectionConfig } = require('payload/types');
 
-export const Test: CollectionConfig = {
+module.exports = {
   slug: 'tests',
   admin: {
     useAsTitle: 'title',
