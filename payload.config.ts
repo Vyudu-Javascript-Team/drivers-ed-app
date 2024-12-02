@@ -4,7 +4,6 @@ const Story = require('./collections/Story');
 const Test = require('./collections/Test');
 const Media = require('./collections/Media');
 const Users = require('./collections/Users');
-const lexicalEditor = require('@payloadcms/richtext-lexical').default;
 
 module.exports = buildConfig({
   serverURL: process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000',
@@ -16,7 +15,6 @@ module.exports = buildConfig({
       },
     },
   },
-  editor: lexicalEditor({}),
   collections: [
     Users,
     Story,
