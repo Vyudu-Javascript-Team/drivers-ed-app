@@ -1,7 +1,7 @@
-import { CollectionConfig } from 'payload/types';
-import { lexicalEditor } from '@payloadcms/richtext-lexical';
+const { CollectionConfig } = require('payload/types');
+const { lexicalEditor } = require('@payloadcms/richtext-lexical');
 
-export const Story: CollectionConfig = {
+module.exports = {
   slug: 'stories',
   admin: {
     useAsTitle: 'title',
